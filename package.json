@@ -2,9 +2,9 @@
   "name": "simplenodeserver",
   "version": "1.0.0",
   "description": "Simple restful api",
-  "main": "app/index.ts",
+  "main": "index.js",
   "scripts": {
-    "start": "nodemon app/index.js"
+    "start": "nodemon src/index.js"
   },
   "repository": {
     "type": "git",
@@ -27,10 +27,12 @@
   },
   "homepage": "https://github.com/joseantoniocartagena/SimpleHTTPServerNode#readme",
   "dependencies": {
+    "bcrypt": "^3.0.7",
     "body-parser": "^1.19.0",
+    "email-validator": "^2.0.4",
     "express": "^4.17.1",
-    "jwt-simple": "^0.5.6",
-    "mongodb": "^3.3.5"
+    "mongodb": "^3.3.5",
+    "morgan": "^1.9.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.1"

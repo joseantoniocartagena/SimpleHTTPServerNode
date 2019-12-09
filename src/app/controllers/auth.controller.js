@@ -40,15 +40,57 @@ function resolveSignIn(status) {
     response.writeHead(status, { 'Content-Type': 'application/json' });
     response.end(JSON.stringify(json));
 }
+function resolveLogIn(status, token) {
+    let json;
+    switch (status) {
+        case 200:
+            if (token) {
+                json = {
+                    code: status,
+                    status: 'OK',
+                    message: 'The request has succeeded.',
+                    token: token
+                }
+            } else {
+                json = {
+                    code: status,
+                    status: 'OK',
+                    message: 'Wrong user or password.',
+                    token: token
+                }
+            }
+            break;
+        case 422:
+            json = {
+                code: status,
+                status: 'UNABLE TO BE PROCESSED',
+                message: 'Email or username are required.'
+            }
+            break;
+        case 500:
+            json = {
+                code: status,
+                status: 'INTERNAL SERVER ERROR',
+                message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.'
+            }
+            break;
+    }
+    response.writeHead(status, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify(json));
+}
 function inputValidator(username, email) {
     const regExp = /^[0-9A-Za-z]+$/;
     return username.match(regExp) && emailValidator.validate(email) ? true : false;
 }
+
+function passwordCheck(password, hash) {
+    return bcrypt.compareSync(password, hash);
+}
+
 function signin(req, res) {
     let auth = new AuthService();
     let data = req.query;
     response = res;
-    console.log(data.username, data.email);
     if (inputValidator(data.username, data.email)) {
         let salt = bcrypt.genSaltSync(saltRounds);
         let hash = bcrypt.hashSync(data.password, salt);
@@ -58,6 +100,20 @@ function signin(req, res) {
     }
 }
 
+function login(req, res) {
+    let auth = new AuthService();
+    let data = req.query;
+    response = res;
+    if (typeof data.username == 'undefined') {
+        resolveLogIn(422);
+    } else if (data.username.includes('@')) {
+        auth.loginWithEmail(data.username, data.password, passwordCheck, resolveLogIn);
+    } else {
+        auth.loginWithUsername(data.username, data.password, passwordCheck, resolveLogIn);
+    }
+}
+
 module.exports = {
-    signin
+    signin,
+    login
 }

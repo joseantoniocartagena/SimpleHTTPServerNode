@@ -29,7 +29,7 @@ class AuthService extends DatabaseConfigService {
             }
         });
     }
-    loginWithUsername(username, password, passCheck, fx) {
+    loginWithUsername(username, password, passwordCheck, fx) {
         this.client.connect(err => {
             let token;
             if (err) {
@@ -38,13 +38,19 @@ class AuthService extends DatabaseConfigService {
             } else {
                 this.client.db('news_db').collection('users').find({ username: username }).toArray().then(res => {
                     if (res.length) {
-                        token = new TokenService().createToken(res[0]._id, res[0].email);
-                        fx(200, token);
+                        if (passwordCheck(password, res.password)) {
+                            token = new TokenService().createToken(res[0]._id, res[0].email);
+                            fx(200, token);
+                        } else {
+                            fx(200);
+                        }
                     } else {
                         fx(200);
                     }
+                    this.client.close();
                 }).catch(err => {
                     fx(500);
+                    this.client.close();
                 });
             }
         });
@@ -57,21 +63,22 @@ class AuthService extends DatabaseConfigService {
             } else {
                 this.client.db('news_db').collection('users').find({ email: email }).toArray().then(res => {
                     if (res.length) {
-                        token = new TokenService().createToken(res[0]._id, res[0].email);
-                        fx(200, token);
+                        if (passwordCheck(password, res.password)) {
+                            token = new TokenService().createToken(res[0]._id, res[0].email);
+                            fx(200, token);
+                        } else {
+                            fx(200);
+                        }
                     } else {
                         fx(200);
                     }
                     this.client.close();
                 }).catch(err => {
                     fx(500);
+                    this.client.close();
                 });
             }
         });
-    }
-
-    logout() {
-
     }
 }
 module.exports = AuthService;

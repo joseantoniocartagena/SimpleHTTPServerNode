@@ -3,5 +3,5 @@ const postCtrl = require('../controllers/post.controller');
 const express = require('express');
 const router = express.Router();
 
-router.post('/post', postCtrl.post);
+router.post('/newpost', postCtrl.newPost);
 module.exports = router;

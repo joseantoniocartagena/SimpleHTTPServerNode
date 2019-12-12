@@ -33,13 +33,16 @@ class AuthService extends DatabaseConfigService {
         this.client.connect(err => {
             let token;
             if (err) {
-                fx(500);
+                console.log(err);
+                fx(500, err);
                 this.client.close();
             } else {
                 this.client.db('news_db').collection('users').find({ username: username }).toArray().then(res => {
+                    const user = res[0];
                     if (res.length) {
-                        if (passwordCheck(password, res.password)) {
-                            token = new TokenService().createToken(res[0]._id, res[0].email);
+                        console.log(password, res, username);
+                        if (passwordCheck(password, user.password)) {
+                            token = new TokenService().createToken(user._id, user.email);
                             fx(200, token);
                         } else {
                             fx(200);
@@ -49,7 +52,8 @@ class AuthService extends DatabaseConfigService {
                     }
                     this.client.close();
                 }).catch(err => {
-                    fx(500);
+                    console.log(err);
+                    fx(500, err);
                     this.client.close();
                 });
             }
@@ -62,9 +66,10 @@ class AuthService extends DatabaseConfigService {
                 fx(500);
             } else {
                 this.client.db('news_db').collection('users').find({ email: email }).toArray().then(res => {
+                    const user = res[0];
                     if (res.length) {
-                        if (passwordCheck(password, res.password)) {
-                            token = new TokenService().createToken(res[0]._id, res[0].email);
+                        if (passwordCheck(password, user.password)) {
+                            token = new TokenService().createToken(user._id, user.email);
                             fx(200, token);
                         } else {
                             fx(200);

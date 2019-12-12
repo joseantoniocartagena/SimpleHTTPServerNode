@@ -2,11 +2,15 @@
 class DatabaseConfigService {
     constructor() {
         const MongoClient = require('mongodb').MongoClient;
-        const uri = require('../../config/config-file').URL;
+        var FirebaseClient = require('firebase-admin');
+        const constants = require('../../config/config-file');
+        const uri = constants.URL;
+        const firebaseConfig = constants.FIREBASE_CONFIG;
         this.client = new MongoClient(uri, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
+        //this.images = FirebaseClient.initializeApp(firebaseConfig);
     }
 }
 

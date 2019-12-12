@@ -12,7 +12,7 @@ class TokenService {
     }
     validateToken(token) {
         let payload = jwt.decode(token, secret, 'HS512');
-        return Date.now() >= payload.exp ? false : true;
+        return Date.now() >= payload.exp ? false : payload;
     }
 }
 

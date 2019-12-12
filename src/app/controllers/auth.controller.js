@@ -11,28 +11,35 @@ function resolveSignIn(status) {
         case 200:
             json = {
                 code: status,
-                status: 'OK',
+                status: 'Ok',
                 message: 'Email or username already exists.'
             };
             break;
         case 201:
             json = {
                 code: status,
-                status: 'CREATED',
-                message: 'The request has been fulfilled and has resulted in one new user being created.'
+                status: 'Created',
+                message: 'The request has been fulfilled and has resulted in one new user created.'
             };
+            break;
+        case 403:
+            json = {
+                code: status,
+                status: 'Source access denied',
+                message: 'Username and password required'
+            }
             break;
         case 422:
             json = {
                 code: status,
-                status: 'UNABLE TO BE PROCESSED',
+                status: 'Unable to be Processed',
                 message: 'Syntax error, email or username should not contain spaces or special characters.'
             }
             break;
         case 500:
             json = {
                 code: status,
-                status: 'INTERNAL SERVER ERROR',
+                status: 'Internal server error',
                 message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.'
             }
             break;
@@ -47,31 +54,32 @@ function resolveLogIn(status, token) {
             if (token) {
                 json = {
                     code: status,
-                    status: 'OK',
+                    status: 'Ok',
                     message: 'The request has succeeded.',
                     token: token
                 }
             } else {
                 json = {
                     code: status,
-                    status: 'OK',
+                    status: 'Ok',
                     message: 'Wrong user or password.',
                     token: token
                 }
             }
             break;
-        case 422:
+        case 403:
             json = {
                 code: status,
-                status: 'UNABLE TO BE PROCESSED',
-                message: 'Email or username are required.'
+                status: 'Source access denied',
+                message: 'Username and password required'
             }
             break;
         case 500:
             json = {
                 code: status,
-                status: 'INTERNAL SERVER ERROR',
-                message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.'
+                status: 'Internal server error',
+                message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.',
+                token: token
             }
             break;
     }
@@ -87,29 +95,56 @@ function passwordCheck(password, hash) {
     return bcrypt.compareSync(password, hash);
 }
 
+function decryptHeader(header) {
+    const toDelete = 'Basic ';
+    header = header.replace(toDelete, '');
+    return atob(header).split(':');
+
+}
+
 function signin(req, res) {
-    let auth = new AuthService();
-    let data = req.query;
+    const auth = new AuthService();
+    let username, email, password, salt, hash;
     response = res;
-    if (inputValidator(data.username, data.email)) {
-        let salt = bcrypt.genSaltSync(saltRounds);
-        let hash = bcrypt.hashSync(data.password, salt);
-        auth.signin(data.username, data.email, hash, resolveSignIn);
+    if (req.headers.username) {
+        username = req.headers.username,
+            email = req.headers.email,
+            password = req.headers.password;
+        if (inputValidator(username, email)) {
+            salt = bcrypt.genSaltSync(saltRounds);
+            hash = bcrypt.hashSync(password, salt);
+            auth.signin(username, email, hash, resolveSignIn);
+        } else {
+            resolveSignIn(422);
+        }
     } else {
-        resolveSignIn(422);
+        resolveSignIn(403);
     }
 }
 
 function login(req, res) {
-    let auth = new AuthService();
-    let data = req.query;
+    const auth = new AuthService();
+    let credentials;
     response = res;
-    if (typeof data.username == 'undefined') {
-        resolveLogIn(422);
-    } else if (data.username.includes('@')) {
-        auth.loginWithEmail(data.username, data.password, passwordCheck, resolveLogIn);
+    if (!req.headers.authorization) {
+        resolveLogIn(403);
     } else {
-        auth.loginWithUsername(data.username, data.password, passwordCheck, resolveLogIn);
+        credentials = decryptHeader(req.headers.authorization);
+        if (credentials[0].includes('@')) {
+            auth.loginWithEmail(
+                credentials[0],
+                credentials[1],
+                passwordCheck,
+                resolveLogIn
+            );
+        } else {
+            auth.loginWithUsername(
+                credentials[0],
+                credentials[1],
+                passwordCheck,
+                resolveLogIn
+            );
+        }
     }
 }
 

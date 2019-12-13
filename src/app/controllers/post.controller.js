@@ -1,5 +1,6 @@
 const TokenService = require('../services/token.service');
 const PostService = require('../services/post.service');
+const ImageService = require('../services/image.service');
 var response;
 function resolveNewPost(status) {
     let json = {};
@@ -24,12 +25,18 @@ function resolveNewPost(status) {
                 message: 'you must log before you can access data'
             }
             break;
+        case 422:
+            json = {
+                code: status,
+                status: 'Unable to be Processed',
+                message: 'Syntax error, image should be in base64 format'
+            }
+            break;
         case 500:
             json = {
                 code: status,
                 status: 'Internal server error',
-                message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.',
-                token: token
+                message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.'
             }
             break;
     }
@@ -42,6 +49,13 @@ function decryptHeader(header) {
     return header.replace(toDelete, '');
 }
 
+function uploadImage(image) { 
+    const is = new ImageService();
+    const type = image.mimetype.split('/')[1];
+    is.uploadImage(image.buffer, type);
+    resolveNewPost(201);
+}
+
 function newPost(req, res) {
     let token;
     let ps;
@@ -49,19 +63,23 @@ function newPost(req, res) {
     let data = req.query
     response = res;
     if (!req.headers.authorization) {
-        resolveNewPost(403, res);
+        resolveNewPost(403);
     } else {
         token = decryptHeader(req.headers.authorization);
         access = new TokenService().validateToken(token);
-        if (access) {
+        if (!access) {
             if (!data.title || !data.body) {
                 resolveNewPost(200);
             } else {
-                ps = new PostService();
-                ps.newPost(data.title, data.body, data.image, access.id, access.email, resolveNewPost);
+                if (req.file) {
+                    uploadImage(req.file);
+                } else {
+                    ps = new PostService();
+                    ps.newPost(data.title, data.body, data.image, access.id, access.email, resolveNewPost);
+                }
             }
         } else {
-            resolveNewPost(403, res);
+            resolveNewPost(403);
         }
     }
 }
